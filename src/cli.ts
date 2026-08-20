@@ -50,7 +50,12 @@ if (!fs.existsSync(contractPath)) {
 const HelloWorld = await import(pathToFileURL(contractPath).href);
 
 const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-  CompiledContract.withVacantWitnesses,
+  CompiledContract.withWitnesses({
+    getBalance: (context: any) => [
+      context.privateState,
+      context.privateState.balance,
+    ],
+  }),
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
 
@@ -158,11 +163,11 @@ async function main() {
     const providers = await createProviders(walletCtx);
 
     const deployed: any = await findDeployedContract(providers, {
-      compiledContract: compiledContract as any,
-      contractAddress: deployment.address,
-      privateStateId: PRIVATE_STATE_ID,
-      initialPrivateState: {},
-    });
+    compiledContract: compiledContract as any,
+    contractAddress: deployment.address,
+    privateStateId: PRIVATE_STATE_ID,
+    initialPrivateState: { balance: BigInt(process.env.RENT_BALANCE || '1000') },
+});
 
     console.log('  ✅ Connected!\n');
 
@@ -188,6 +193,7 @@ async function main() {
             console.log(`  Block height: ${tx.public.blockHeight}\n`);
           } catch (error) {
             console.error('\n  ❌ Failed:', error instanceof Error ? error.message : error);
+        if (error instanceof Error && error.stack) { console.error("\nFULL STACK TRACE:\n" + error.stack); }
           }
           break;
         }
@@ -205,6 +211,7 @@ async function main() {
             }
           } catch (error) {
             console.error('\n  ❌ Failed:', error instanceof Error ? error.message : error);
+        if (error instanceof Error && error.stack) { console.error("\nFULL STACK TRACE:\n" + error.stack); }
           }
           break;
         }

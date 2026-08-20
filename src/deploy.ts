@@ -25,7 +25,6 @@ globalThis.WebSocket = WebSocket;
 
 // Identifier under which this contract's private state is stored. The
 // hello-world contract has no witnesses, so its private state is empty ({}).
-const PRIVATE_STATE_ID = 'helloWorldPrivateState';
 
 // ─── Network configuration ─────────────────────────────────────────────────────
 //
@@ -82,7 +81,12 @@ if (!fs.existsSync(contractPath)) {
 const HelloWorld = await import(pathToFileURL(contractPath).href);
 
 const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-  CompiledContract.withVacantWitnesses,
+  CompiledContract.withWitnesses({
+    getBalance: (context: any) => [
+      context.privateState,
+      context.privateState.balance,
+    ],
+  }),
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
 
@@ -297,8 +301,6 @@ async function main() {
       deployed = await deployContract(providers, {
         compiledContract: compiledContract as any,
         args: [],
-        privateStateId: PRIVATE_STATE_ID,
-        initialPrivateState: {},
       });
       break;
     } catch (err: any) {
