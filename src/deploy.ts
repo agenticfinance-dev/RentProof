@@ -24,7 +24,7 @@ import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-j
 globalThis.WebSocket = WebSocket;
 
 // Identifier under which this contract's private state is stored. The
-// hello-world contract has no witnesses, so its private state is empty ({}).
+// rentproof contract has no witnesses, so its private state is empty ({}).
 
 // ─── Network configuration ─────────────────────────────────────────────────────
 //
@@ -70,7 +70,7 @@ async function waitForProofServer(maxAttempts = 60, delayMs = 2000): Promise<boo
 // ─── Compiled contract loading ─────────────────────────────────────────────────
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'hello-world');
+const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'rentproof');
 const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
 
 if (!fs.existsSync(contractPath)) {
@@ -78,18 +78,17 @@ if (!fs.existsSync(contractPath)) {
   process.exit(1);
 }
 
-const HelloWorld = await import(pathToFileURL(contractPath).href);
+const RentProof = await import(pathToFileURL(contractPath).href);
 
-const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-  CompiledContract.withWitnesses({
-    getBalance: (context: any) => [
-      context.privateState,
-      context.privateState.balance,
-    ],
-  }),
-  CompiledContract.withCompiledFileAssets(zkConfigPath),
+const compiledContract = CompiledContract.make('rentproof', RentProof.Contract).pipe(
+    // @ts-expect-error - SDK generic typing rejects witness object shape at compile time; the runtime shape matches the generated contract's Witnesses type
+    CompiledContract.withWitnesses({
+      getBalance: (context: any) => {
+        return [context.privateState, context.privateState.balance];
+      },
+    }),
+    CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
-
 // ─── Providers ─────────────────────────────────────────────────────────────────
 
 async function createProviders(walletCtx: WalletContext) {
@@ -121,7 +120,7 @@ async function createProviders(walletCtx: WalletContext) {
 
   return {
     privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'hello-world-state',
+      privateStateStoreName: 'rentproof-state',
       accountId,
       privateStoragePasswordProvider: () => privateStatePassword,
     }),
@@ -293,9 +292,9 @@ async function main() {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       // Midnight.js 4.1.x supplies private state via privateStateId +
-      // initialPrivateState (empty here — the hello-world contract has no
+      // initialPrivateState (empty here — the rentproof contract has no
       // witnesses). args is the contract constructor's arguments: empty for
-      // hello-world's no-arg constructor. (Statically-typed contracts can omit
+      // rentproof's no-arg constructor. (Statically-typed contracts can omit
       // args entirely; this script loads the contract dynamically, so the
       // conditional args type widens to any[] and an explicit [] is required.)
       deployed = await deployContract(providers, {

@@ -24,7 +24,7 @@ import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-j
 globalThis.WebSocket = WebSocket;
 
 // Must match the privateStateId used at deploy time so the CLI reconnects to
-// the same private state. The hello-world contract has no witnesses (empty state).
+// the same private state. The rentproof contract has no witnesses (empty state).
 const PRIVATE_STATE_ID = 'helloWorldPrivateState';
 
 const { network, config: networkConfig } = resolveNetwork();
@@ -36,7 +36,7 @@ const SEED = WALLET.seed;
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'hello-world');
+const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'rentproof');
 
 // Load compiled contract
 const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
@@ -47,18 +47,17 @@ if (!fs.existsSync(contractPath)) {
   process.exit(1);
 }
 
-const HelloWorld = await import(pathToFileURL(contractPath).href);
+const RentProof = await import(pathToFileURL(contractPath).href);
 
-const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-  CompiledContract.withWitnesses({
-    getBalance: (context: any) => [
-      context.privateState,
-      context.privateState.balance,
-    ],
-  }),
-  CompiledContract.withCompiledFileAssets(zkConfigPath),
+const compiledContract = CompiledContract.make('rentproof', RentProof.Contract).pipe(
+    // @ts-expect-error - SDK generic typing rejects witness object shape at compile time; the runtime shape matches the generated contract's Witnesses type
+    CompiledContract.withWitnesses({
+      getBalance: (context: any) => {
+        return [context.privateState, context.privateState.balance];
+      },
+    }),
+    CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
-
 // ─── Providers ─────────────────────────────────────────────────────────────────
 
 async function createProviders(walletCtx: WalletContext) {
@@ -90,7 +89,7 @@ async function createProviders(walletCtx: WalletContext) {
 
   return {
     privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'hello-world-state',
+      privateStateStoreName: 'rentproof-state',
       accountId,
       privateStoragePasswordProvider: () => privateStatePassword,
     }),
@@ -203,7 +202,7 @@ async function main() {
           try {
             const contractState = await providers.publicDataProvider.queryContractState(deployment.address);
             if (contractState) {
-              const ledgerState = HelloWorld.ledger(contractState.data);
+              const ledgerState = RentProof.ledger(contractState.data);
               const message = Buffer.from(ledgerState.message).toString();
               console.log(`\n  📋 Current message: "${message}"\n`);
             } else {
