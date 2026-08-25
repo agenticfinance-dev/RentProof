@@ -39,7 +39,8 @@
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "tsx": "^4.23.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -53,7 +54,7 @@
   "overrides": {
     "@midnight-ntwrk/compact-js": {
       "@midnight-ntwrk/compact-runtime": "0.16.0",
-    "@midnight-ntwrk/onchain-runtime-v3": "3.1.0"
+      "@midnight-ntwrk/onchain-runtime-v3": "3.1.0"
     },
     "@midnight-ntwrk/compact-runtime": "0.16.0",
     "@midnight-ntwrk/onchain-runtime-v3": "3.1.0"

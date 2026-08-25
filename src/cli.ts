@@ -170,78 +170,188 @@ async function main() {
 
     console.log('  ✅ Connected!\n');
 
-    // Interactive CLI loop
-    let running = true;
-    while (running) {
-      console.log('─── Menu ───────────────────────────────────────────────────────');
-      console.log('  1. Store a message');
-      console.log('  2. Read current message');
-      console.log('  3. Check wallet balance');
-      console.log('  4. Exit\n');
+    // Interactive RentProof CLI
+  let running = true;
 
-      const choice = await rl.question('  Your choice: ');
+  while (running) {
+    console.log('—— RentProof Menu ————————————————————————————————');
+    console.log('  1. Set rental threshold');
+    console.log('  2. Prove solvency');
+    console.log('  3. Read current proof status');
+    console.log('  4. Check wallet balance');
+    console.log('  5. Exit\n');
 
-      switch (choice.trim()) {
-        case '1': {
-          const message = await rl.question('  Enter your message: ');
-          console.log('\n  Submitting transaction (this may take 30-60 seconds)...');
-          try {
-            const tx = await deployed.callTx.storeMessage(message);
-            console.log(`\n  ✅ Message stored: "${message}"`);
-            console.log(`  Transaction ID: ${tx.public.txId}`);
-            console.log(`  Block height: ${tx.public.blockHeight}\n`);
-          } catch (error) {
-            console.error('\n  ❌ Failed:', error instanceof Error ? error.message : error);
-        if (error instanceof Error && error.stack) { console.error("\nFULL STACK TRACE:\n" + error.stack); }
+    const choice = await rl.question('  Your choice: ');
+
+    switch (choice.trim()) {
+      case '1': {
+        const thresholdInput = await rl.question(
+          '  Enter required rental threshold: ',
+        );
+
+        try {
+          const threshold = BigInt(thresholdInput.trim());
+
+          if (threshold < 0n) {
+            throw new Error('Threshold cannot be negative.');
           }
-          break;
+
+          console.log(
+            '\n  ⏳ Setting rental threshold (this may take 30-60 seconds)...',
+          );
+
+          const tx = await deployed.callTx.setThreshold(threshold);
+
+          console.log(`\n  ✅ Rental threshold set to: ${threshold}`);
+          console.log(`     Transaction ID: ${tx.public.txId}`);
+          console.log(`     Block height: ${tx.public.blockHeight}\n`);
+        } catch (error) {
+          console.error(
+            '\n  ❌ Failed:',
+            error instanceof Error ? error.message : error,
+          );
+
+          if (error instanceof Error && error.stack) {
+            console.error('\nFULL STACK TRACE:\n' + error.stack);
+          }
         }
 
-        case '2': {
-          console.log('\n  Reading message from blockchain...');
-          try {
-            const contractState = await providers.publicDataProvider.queryContractState(deployment.address);
-            if (contractState) {
-              const ledgerState = RentProof.ledger(contractState.data);
-              const message = Buffer.from(ledgerState.message).toString();
-              console.log(`\n  📋 Current message: "${message}"\n`);
-            } else {
-              console.log('\n  📋 No message found (contract state empty)\n');
-            }
-          } catch (error) {
-            console.error('\n  ❌ Failed:', error instanceof Error ? error.message : error);
-        if (error instanceof Error && error.stack) { console.error("\nFULL STACK TRACE:\n" + error.stack); }
+        break;
+      }
+
+      case '2': {
+        console.log(
+          '\n  ⏳ Generating zero-knowledge solvency proof...',
+        );
+
+        try {
+          const tx = await deployed.callTx.proveSolvency();
+
+          const contractState =
+            await providers.publicDataProvider.queryContractState(
+              deployment.address,
+            );
+
+          if (!contractState) {
+            throw new Error(
+              'Transaction succeeded, but the contract state could not be queried.',
+            );
           }
-          break;
+
+          const ledgerState = RentProof.ledger(contractState.data);
+
+          console.log(
+            `\n  ✅ Solvency proof submitted successfully.`,
+          );
+          console.log(
+            `     Status: ${ledgerState.verified ? 'ELIGIBLE' : 'NOT ELIGIBLE'}`,
+          );
+          console.log(`     Required threshold: ${ledgerState.threshold}`);
+          console.log(`     Transaction ID: ${tx.public.txId}`);
+          console.log('\n  🔐 Your financial balance was not revealed.\n');
+        } catch (error) {
+          console.error(
+            '\n  ❌ Proof failed:',
+            error instanceof Error ? error.message : error,
+          );
+
+          if (error instanceof Error && error.stack) {
+            console.error('\nFULL STACK TRACE:\n' + error.stack);
+          }
         }
 
-        case '3': {
-          console.log('\n  Checking balance...');
-          const currentState = await walletCtx.wallet.waitForSyncedState();
-          const currentBalance = currentState.unshielded.balances[unshieldedToken().raw] ?? 0n;
-          const dustBalance = currentState.dust.balance(new Date());
+        break;
+      }
+
+      case '3': {
+        console.log('\n  Reading RentProof contract state...');
+
+        try {
+          const contractState =
+            await providers.publicDataProvider.queryContractState(
+              deployment.address,
+            );
+
+          if (!contractState) {
+            console.log('\n  ⚠️ Contract state is not available.\n');
+            break;
+          }
+
+          const ledgerState = RentProof.ledger(contractState.data);
+
+          console.log(`\n  Required threshold: ${ledgerState.threshold}`);
+          console.log(
+            `  Solvency status: ${
+              ledgerState.verified ? 'ELIGIBLE' : 'NOT ELIGIBLE'
+            }\n`,
+          );
+        } catch (error) {
+          console.error(
+            '\n  ❌ Failed:',
+            error instanceof Error ? error.message : error,
+          );
+
+          if (error instanceof Error && error.stack) {
+            console.error('\nFULL STACK TRACE:\n' + error.stack);
+          }
+        }
+
+        break;
+      }
+
+      case '4': {
+        console.log('\n  Checking wallet balance...');
+
+        try {
+          const currentState =
+            await walletCtx.wallet.waitForSyncedState();
+
+          const currentBalance =
+            currentState.unshielded.balances[unshieldedToken().raw] ?? 0n;
+
+          const dustBalance =
+            currentState.dust.balance(new Date());
+
           console.log(`\n  tNight: ${currentBalance.toLocaleString()}`);
           console.log(`  DUST: ${dustBalance.toLocaleString()}\n`);
-          break;
+        } catch (error) {
+          console.error(
+            '\n  ❌ Failed:',
+            error instanceof Error ? error.message : error,
+          );
+
+          if (error instanceof Error && error.stack) {
+            console.error('\nFULL STACK TRACE:\n' + error.stack);
+          }
         }
 
-        case '4':
-          running = false;
-          console.log('\n  👋 Goodbye!\n');
-          break;
-
-        default:
-          console.log('\n  ❌ Invalid choice. Please enter 1-4.\n');
+        break;
       }
+
+      case '5':
+        running = false;
+        console.log('\n  👋 Goodbye!\n');
+        break;
+
+      default:
+        console.log('\n  ❌ Invalid choice. Please enter 1-5.\n');
     }
 
-    await persistWalletState(network, walletCtx);
-    await walletCtx.wallet.stop();
-  } catch (error) {
-    console.error('\n❌ Error:', error instanceof Error ? error.message : error);
-  } finally {
-    rl.close();
+    if (running) {
+      await persistWalletState(network, walletCtx);
+    }
   }
+
+  await persistWalletState(network, walletCtx);
+  await walletCtx.wallet.stop();
+} catch (error) {
+  console.error(
+    '\n❌ Error:',
+    error instanceof Error ? error.message : error,
+  );
+} finally {
+  rl.close();
+}
 }
 
 main().catch(console.error);
