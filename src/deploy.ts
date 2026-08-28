@@ -152,12 +152,29 @@ async function main() {
   console.log('  Syncing with network...');
   console.log('  ℹ  This may take several minutes depending on network size.');
   console.log('     RPC disconnection messages during sync are normal and can be safely ignored.\n');
+  const isProgressStrictlyComplete = (progress: unknown): boolean => {
+    if (!progress || typeof progress !== 'object') return false;
+    const fn = (progress as { isStrictlyComplete?: unknown }).isStrictlyComplete;
+    return typeof fn === 'function' && (fn as () => boolean).call(progress);
+  };
+
+  const waitForWalletState = () =>
+    Rx.firstValueFrom(
+      walletCtx.wallet.state().pipe(
+        Rx.filter(
+          (s) =>
+            isProgressStrictlyComplete(s.shielded.state.progress) &&
+            isProgressStrictlyComplete(s.unshielded.progress),
+        ),
+      ),
+    );
+
   const syncStart = Date.now();
   const syncInterval = setInterval(() => {
     const elapsed = Math.round((Date.now() - syncStart) / 1000);
     process.stdout.write(`\r  ⏳ Still syncing... (${elapsed}s elapsed)   `);
   }, 5000);
-  const state = await walletCtx.wallet.waitForSyncedState();
+  const state = await waitForWalletState();
   clearInterval(syncInterval);
   process.stdout.write('\r  ✓ Synced with network.                                      \n');
 
@@ -185,9 +202,7 @@ async function main() {
   if (network !== 'undeployed' && networkConfig.faucet) {
     // Same balance idiom used by check-balance.ts:
     //   state.unshielded.balances[unshieldedToken().raw] ?? 0n
-    const initialBalance = await Rx.firstValueFrom(walletCtx.wallet.state().pipe(
-      Rx.filter((s) => s.isSynced),
-    ));
+    const initialBalance = await waitForWalletState();
     const initialTNight = initialBalance.unshielded.balances[unshieldedToken().raw] ?? 0n;
     if (initialTNight === 0n) {
       console.log('─── Fund Wallet ────────────────────────────────────────────────\n');
@@ -200,7 +215,7 @@ async function main() {
       const start = Date.now();
       while (true) {
         await new Promise((r) => setTimeout(r, 10_000));
-        const s = await Rx.firstValueFrom(walletCtx.wallet.state().pipe(Rx.filter((x) => x.isSynced)));
+        const s = await waitForWalletState();
         const tn = s.unshielded.balances[unshieldedToken().raw] ?? 0n;
         if (tn > 0n) {
           console.log(`\n  Funded! tNIGHT balance: ${tn.toLocaleString()}\n`);
@@ -222,7 +237,7 @@ async function main() {
 
   // Register for DUST.
   console.log('─── DUST Token Setup ───────────────────────────────────────────\n');
-  const dustState = await Rx.firstValueFrom(walletCtx.wallet.state().pipe(Rx.filter((s) => s.isSynced)));
+  const dustState = await waitForWalletState();
 
   const unregisteredUtxos = dustState.unshielded.availableCoins.filter(
     (c: any) => !c.meta?.registeredForDustGeneration,
@@ -247,7 +262,7 @@ async function main() {
     await Rx.firstValueFrom(
       walletCtx.wallet.state().pipe(
         Rx.throttleTime(5000),
-        Rx.filter((s) => s.isSynced),
+        Rx.filter((s) => isProgressStrictlyComplete(s.shielded.state.progress) && isProgressStrictlyComplete(s.unshielded.progress)),
         Rx.filter((s) => s.dust.balance(new Date()) > 0n),
       ),
     );
@@ -336,7 +351,7 @@ async function main() {
       }
 
       if (isDustShortage) {
-        const currentState = await walletCtx.wallet.waitForSyncedState();
+        const currentState = await waitForWalletState();
         const dustBalance = currentState.dust.balance(new Date());
         if (attempt < MAX_RETRIES) {
           if (attempt === 1) {

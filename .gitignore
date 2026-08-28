@@ -61,3 +61,8 @@ temp/
 
 # Midnight local LevelDB runtime state
 midnight-level-db/
+
+# Local wallet verification scripts
+check-seed.mjs
+verify-lace-address.mjs
+*.bak
