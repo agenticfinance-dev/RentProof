@@ -257,13 +257,17 @@ async function main() {
     await walletCtx.wallet.submitTransaction(finalized);
   }
 
-  if (dustState.dust.balance(new Date()) === 0n) {
-    console.log('  Waiting for DUST tokens...');
+  if (dustState.dust.balance(new Date()) === 0n || dustState.dust.availableCoins.length === 0) {
+    console.log('  Waiting for spendable DUST coin...');
     await Rx.firstValueFrom(
       walletCtx.wallet.state().pipe(
         Rx.throttleTime(5000),
         Rx.filter((s) => isProgressStrictlyComplete(s.shielded.state.progress) && isProgressStrictlyComplete(s.unshielded.progress)),
-        Rx.filter((s) => s.dust.balance(new Date()) > 0n),
+        Rx.filter((s) => s.dust.availableCoins.length >= 1),
+        Rx.timeout({
+          each: 180000,
+          with: () => Rx.throwError(() => new Error('No spendable DUST coin within 180s')),
+        }),
       ),
     );
   }
