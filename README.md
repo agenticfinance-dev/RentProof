@@ -1,210 +1,292 @@
-# rentproof-app
+# RentProof
 
-A Midnight Network smart contract scaffolded with create-mn-app.
+<p align="center">
+  <img src="https://img.shields.io/badge/Midnight-Preprod-7B61FF" alt="Midnight Preprod">
+  <img src="https://img.shields.io/badge/Compact-Smart%20Contract-111111" alt="Compact">
+  <img src="https://img.shields.io/badge/Network-Preprod-2563EB" alt="Preprod Network">
+  <img src="https://img.shields.io/badge/License-Apache%202.0-green.svg" alt="Apache 2.0 License">
+</p>
 
-## Quick start
+<p align="center">
+  <strong>Prove you can afford the rent -- without showing your bank balance.</strong>
+</p>
 
-Requirements: Node 22, Docker (with Compose v2), and the Compact compiler at the version pinned in `.compact-version` at the create-mn-app repo root (the version this project was scaffolded against).
+<p align="center">
+  A privacy-preserving rental solvency verification application built on the Midnight Network.
+</p>
 
-```bash
-npm install
-npm run setup
-npm run test:e2e
-```
+---
 
-`npm run setup` runs end-to-end with no prompts:
+## Overview
 
-1. `docker compose up -d --wait` — starts a local Midnight devnet (node, indexer, proof-server) and blocks until all three pass their healthchecks.
-2. `npm run compile` — compiles `contracts/hello-world.compact` to `contracts/managed/hello-world/`.
-3. `npm run deploy` — derives the genesis-seed wallet (NIGHT pre-minted), registers UTXOs for DUST generation, deploys the contract, writes `.midnight-state.json`.
+**RentProof** is a privacy-preserving rental solvency application built on the **Midnight Network**.
 
-`npm run test:e2e` reconnects to the deployed contract and reads its ledger state. Exits 0 if the contract is live and indexable.
+RentProof allows a tenant to prove that they meet a required rental affordability threshold without revealing their actual financial balance.
 
-## Local devnet
+The application uses a **Compact smart contract** and **zero-knowledge proofs** to verify the solvency condition while keeping the underlying financial value private.
 
-The project ships its own devnet via `docker-compose.yml`:
+### Core Principle
 
-| Service        | Port | Purpose                                         |
-| -------------- | ---- | ----------------------------------------------- |
-| `node`         | 9944 | Midnight node, `dev` chain preset               |
-| `indexer`      | 8088 | GraphQL indexer for chain state                 |
-| `proof-server` | 6300 | Generates ZK proofs for contract transactions   |
+> **Prove the requirement. Don't reveal the balance.**
 
-State lives in container-managed volumes. Tear everything down with:
+---
 
-```bash
-docker compose down -v
-```
+## The Problem
 
-That removes all containers, networks, and volumes. The next `npm run setup` starts from a clean slate.
+When applying for rental accommodation, tenants may be required to demonstrate that they can afford the rent.
 
-## ⚠️ LOCAL DEVNET ONLY
+Traditional verification can require the disclosure of sensitive financial information such as:
 
-The deploy script uses a well-known genesis seed (`0000…0001`) so the
-pre-minted NIGHT in the `dev` chain preset is immediately available. **Do
-not use this seed against Preprod, mainnet, or any environment that
-handles real value** — anyone running this devnet has full access to
-funds at this seed.
+- Bank balances
+- Financial statements
+- Income information
+- Other private financial details
 
-## Networks
+However, a landlord generally needs to know whether the affordability requirement is satisfied, not the tenant's exact financial balance.
 
-This DApp supports three networks:
+RentProof changes this model. Instead of revealing the financial value, the tenant proves that the required condition has been satisfied.
 
-| Network | When to use | Default? |
-|---|---|---|
-| `undeployed` | Local devnet bundled in `docker-compose.yml`. Genesis seed is hardcoded; no funding needed. | yes |
-| `preview` | Public preview testnet. Faucet at `https://midnight-tmnight-preview.nethermind.dev`. |  |
-| `preprod` | Public preprod testnet. Faucet at `https://midnight-tmnight-preprod.nethermind.dev`. |  |
+---
 
-The active network is **sticky**: whichever network you last interacted
-with stays active until you switch. Any command run with `--network <name>`
-also sets that network active for subsequent commands. The default on a
-fresh project is `undeployed` (local devnet).
+## The Solution
 
-```sh
-npm run setup -- --network preview   # runs on preview AND makes it active
-npm run cli                          # still uses preview
-npm run check-balance                # still uses preview
-```
+RentProof generates a privacy-preserving solvency proof. The proof is submitted to a Midnight Compact smart contract, which verifies the condition and produces an eligibility result.
 
-You can also switch without running anything else:
+For example:
 
-```sh
-npm run network preview         # active network is now preview
-npm run network                 # prints current active network
-npm run network undeployed      # switch back to local devnet
-```
+    Required threshold: 3
+    Result: ELIGIBLE
 
-### How wallets work across networks
+The underlying financial balance is not revealed as part of the eligibility result.
 
-- `undeployed` uses a hardcoded genesis seed. Local devnet pre-funds it.
-- `preview` and `preprod` generate a fresh wallet on first use: a 24-word
-  BIP-39 recovery phrase (printed once) plus its derived seed, both stored
-  in `.midnight-state.json` (gitignored). The wallet survives switching
-  networks — switch back later and your funded wallet returns.
-- **Back up your recovery phrase** if you fund a public-network wallet you
-  care about. It is printed when the wallet is created and kept in
-  `.midnight-state.json` under `wallets.<network>.mnemonic`. Anyone holding
-  the phrase controls the wallet.
-- Wallets created before mnemonic support keep working from their stored
-  `seed`; they just have no phrase to import into Lace.
+---
 
-### Using the same wallet as Lace
+## How It Works
 
-Seeds are derived with the standard BIP-39 `mnemonicToSeed` step — the same
-convention Lace uses — so identity is portable in both directions:
+    TENANT
+      |
+      | Private financial information
+      v
+    RentProof App
+      |
+      | Zero-Knowledge Proof
+      v
+    Midnight Compact Smart Contract
+      |
+      | Verification
+      v
+    ELIGIBLE / NOT ELIGIBLE
 
-- **Bring your Lace wallet here**: pass your recovery phrase via the
-  `MIDNIGHT_WALLET_MNEMONIC` env var — the derived addresses match Lace.
-  To keep the phrase out of your shell history, enter it with a hidden
-  prompt instead of typing it inline:
+The key distinction is that RentProof verifies the condition, rather than exposing the underlying financial value.
 
-  ```bash
-  read -s MIDNIGHT_WALLET_MNEMONIC && export MIDNIGHT_WALLET_MNEMONIC
-  npm run deploy
-  ```
-- **Take a scaffold wallet to Lace**: restore Lace from the 24-word phrase
-  in `.midnight-state.json`.
+---
 
-### Funding a public-network wallet
+## Core Smart Contract
 
-On the first run with `--network preview` (or `preprod`):
+RentProof's Compact contract contains two core circuits.
 
-1. `setup` will print your wallet address and the faucet URL.
-2. Open the faucet URL, paste the address, request tNIGHT.
-3. `setup` polls the wallet balance every 10 s and continues automatically
-   once funds arrive.
-4. The default poll budget is 10 minutes. Override with
-   `MIDNIGHT_FAUCET_TIMEOUT_MS=1800000` (30 min) for unattended runs.
+**setThreshold** -- Sets the rental affordability threshold used for verification.
 
-If the faucet is slow or the script times out, your seed is preserved.
-Re-run `npm run setup -- --network preview` once the funds land.
+**proveSolvency** -- Processes the solvency proof and determines whether the private financial condition satisfies the configured threshold.
 
-### Environment overrides
+---
 
-These env vars override the active network's config (no per-network
-suffix — they apply to whichever network is active for the run):
+## Midnight Integration
 
-| Variable | Effect |
+RentProof is built specifically for the Midnight Network and uses its privacy-preserving smart contract infrastructure.
+
+### Technology Stack
+
+- Midnight Network
+- Compact
+- Zero-knowledge proofs
+- Midnight.js
+- Midnight DApp Connector API
+- 1AM Wallet
+- Midnight Proof Server
+- React
+- TypeScript
+- Vite
+- Docker
+
+### Verified Midnight Package Versions
+
+| Package | Version |
 |---|---|
-| `MIDNIGHT_WALLET_SEED` | Use this hex seed (32-128 hex chars; a Lace-compatible BIP-39 seed is 128) instead of generating/persisting one. Useful for CI with a pre-funded wallet. |
-| `MIDNIGHT_WALLET_MNEMONIC` | Use this BIP-39 recovery phrase instead of generating a wallet — e.g. your Lace phrase, for the same addresses as Lace. Not persisted. Set only one of seed/mnemonic. |
-| `MIDNIGHT_INDEXER_URL` | Override the indexer GraphQL URL. |
-| `MIDNIGHT_INDEXER_WS_URL` | Override the indexer WS URL. |
-| `MIDNIGHT_NODE_URL` | Override the node RPC URL. |
-| `MIDNIGHT_FAUCET_URL` | Override the faucet URL printed during setup. |
-| `MIDNIGHT_PROOF_SERVER_URL` | Override the proof server URL — set to a public proof server (e.g. `https://lace-proof-pub.preview.midnight.network`) to skip running one locally. |
-| `MIDNIGHT_FAUCET_TIMEOUT_MS` | Faucet poll budget in milliseconds (default 600000 = 10 min). |
+| @midnight-ntwrk/midnight-js-contracts | 4.1.1 |
+| @midnight-ntwrk/midnight-js-http-client-proof-provider | 4.1.1 |
+| @midnight-ntwrk/midnight-js-indexer-public-data-provider | 4.1.1 |
+| @midnight-ntwrk/midnight-js-protocol | 4.1.1 |
+| @midnight-ntwrk/midnight-js-network-id | 4.1.1 |
+| @midnight-ntwrk/wallet-sdk | 1.2.0 |
+| @midnight-ntwrk/compact-js | 2.5.1 |
+| @midnight-ntwrk/ledger-v8 | 8.1.0 |
+| @midnight-ntwrk/dapp-connector-api | 4.0.1 |
 
-By default all networks use the **local** proof server. Public proof
-servers exist (see the env override above) but the local default keeps
-your witness data on your machine and avoids depending on a remote
-service for the deploy hot path.
+The complete resolved dependency tree is recorded in package-lock.json.
 
-### Switching back to local devnet
+---
 
-```sh
-npm run network undeployed     # or: npm run setup -- --network undeployed
-```
+## 1AM Wallet
 
-Your preview/preprod wallet seeds and deploy addresses stay in
-`.midnight-state.json`. Switch back later, and they're still there.
+RentProof is designed to connect through the 1AM Wallet using the Midnight DApp Connector API. The frontend specifically searches for the 1AM wallet and does not fall back to another wallet.
 
-### Wallet sync cache
+---
 
-After each `deploy`, `cli`, or `check-balance` run, the scripts serialize the
-wallet's synced state to `.midnight-wallet-state/<network>/` (gitignored).
-The next run on the same network restores from that snapshot and only catches
-up to the latest block instead of replaying from genesis — meaningful on
-`preview` / `preprod` where a from-seed sync takes minutes.
+## Verified Midnight Preprod Deployment
 
-If the cache is stale or corrupt (e.g. after an SDK upgrade with an
-incompatible state format) the wallet falls back to a fresh from-seed sync
-with a one-line warning. `npm run clean` removes the cache along with other
-generated state.
+RentProof has been successfully compiled, deployed, and tested on the Midnight Preprod network.
 
-## Available scripts
+**Contract Address:** 0x57e370728a820cdb13386b9a330c29ea8d546a2cdf15aaef778798f752b22c
 
-| Script                  | Description                                                    |
-| ----------------------- | -------------------------------------------------------------- |
-| `npm run setup`         | One-shot: start devnet, compile, deploy.                       |
-| `npm run compile`       | Compile the Compact contract.                                  |
-| `npm run deploy`        | Deploy the compiled contract (requires devnet up + compiled).  |
-| `npm run cli`           | Interactive CLI to call circuits on the deployed contract.     |
-| `npm run check-balance` | Print the genesis-seed wallet's NIGHT and DUST balances.       |
-| `npm run test:e2e`      | Smoke + read-back check against the deployed contract.         |
-| `npm run clean`         | Remove `contracts/managed/`, `.midnight-state.json`, and `.midnight-wallet-state/`. |
-| `npm run proof-server:start` / `:stop` | Compose lifecycle for just the proof-server service. |
+**Threshold Transaction:** 034e8af4693ea70bbe2cecf1f78321ec281599390557e29a1cb7694350ee5a795
 
-## Project structure
+**Solvency Proof Transaction:** 00d4f58e4271584e843d6aee135bf13da80ad79940d6b9f7d3537fb594a796d299
 
-```
-rentproof-app/
-├── contracts/
-│   └── hello-world.compact     # Compact source
-├── scripts/
-│   └── e2e-check.ts            # smoke + read-back
-├── src/
-│   ├── network.ts              # network selection + state file management
-│   ├── wallet.ts               # wallet construction + sync-state cache
-│   ├── setup.ts                # orchestrator for `npm run setup`
-│   ├── deploy.ts               # deploy the contract
-│   ├── cli.ts                  # interact with deployed contract
-│   └── check-balance.ts        # NIGHT / DUST balance
-├── docker-compose.yml          # node + indexer + proof-server
-├── .midnight-state.json        # written by deploy (gitignored)
-├── .midnight-wallet-state/     # serialized sync state per network (gitignored)
-├── package.json
-└── tsconfig.json
-```
+**Successful Verification:**
 
-## Compact compiler version
+    Required threshold: 3
+    Solvency status: ELIGIBLE
 
-`.compact-version` at the create-mn-app repo root pinned the compiler
-version this project was scaffolded against. To upgrade your local
-compiler to that version:
+The successful Preprod test demonstrated that RentProof can submit and verify a solvency proof and return an eligibility result without revealing the underlying financial balance.
 
-```bash
-compact update <version>
-compact use <version>
-```
+---
+
+## Privacy Model
+
+RentProof is built around a simple privacy principle: the eligibility result can be verified without exposing the underlying financial value.
+
+Instead of sharing an exact financial balance, RentProof provides a result such as ELIGIBLE. This minimizes unnecessary disclosure of sensitive financial information.
+
+---
+
+## User Flow
+
+    1. Connect 1AM Wallet
+    2. Enter rental requirement
+    3. Generate solvency proof
+    4. Submit proof to Midnight
+    5. Verify proof
+    6. Receive eligibility result
+
+The application intentionally focuses on this single use case rather than adding unnecessary features.
+
+---
+
+## Frontend
+
+RentProof includes a lightweight React frontend designed around the core verification workflow.
+
+**Frontend Features**
+
+- 1AM Wallet connection
+- Midnight Preprod network connection
+- Rental affordability verification interface
+- Privacy-focused eligibility result
+- Simple user experience
+- No unnecessary account or financial-data dashboard
+
+Built with React, TypeScript, Vite, and the Midnight DApp Connector API.
+
+---
+
+## Project Structure
+
+    RentProof/
+    |-- contracts/
+    |   `-- rentproof.compact
+    |-- src/
+    |   |-- deploy.ts
+    |   |-- network.ts
+    |   `-- ...
+    |-- frontend/
+    |   `-- src/
+    |       |-- App.tsx
+    |       |-- App.css
+    |       |-- index.css
+    |       `-- main.tsx
+    |-- tests/
+    |-- docker-compose.yml
+    |-- package.json
+    |-- package-lock.json
+    |-- README.md
+    `-- LICENSE
+
+---
+
+## Getting Started
+
+### Requirements
+
+- Node.js
+- npm
+- Docker
+- 1AM Wallet
+- Midnight Preprod access
+
+### Clone the Repository
+
+    git clone https://github.com/agenticfinance-dev/RentProof.git
+    cd RentProof
+
+### Install Dependencies
+
+    npm install
+
+### Start the Proof Server
+
+    docker compose up -d proof-server
+
+### Build the Frontend
+
+    cd frontend
+    npm install
+    npm run build
+
+### Start the Frontend
+
+    npm run dev
+
+Open the application in a Midnight-compatible browser environment with the 1AM Wallet available.
+
+---
+
+## Security
+
+RentProof is designed to minimize exposure of sensitive financial information.
+
+Wallet recovery phrases, private keys, generated wallet state, deployment state, and other sensitive credentials must never be committed to the repository. Sensitive local development and wallet-state files are excluded from version control.
+
+The repository does not require users to publish their private financial balance as part of the eligibility result.
+
+---
+
+## Buildathon Focus
+
+RentProof focuses on one clear privacy use case: a tenant can prove they meet a rental affordability requirement without revealing their bank balance.
+
+The project prioritizes a working privacy-preserving implementation over unnecessary application complexity.
+
+---
+
+## Why Midnight?
+
+RentProof is designed around a problem where privacy is central. Financial information is highly sensitive, while rental verification often only requires a yes-or-no answer.
+
+Midnight's privacy-preserving smart contract infrastructure provides a suitable foundation for proving that a condition has been satisfied without unnecessarily exposing the underlying information.
+
+---
+
+## License
+
+Copyright (c) 2026 Agentic Finance Studio
+
+Licensed under the Apache License, Version 2.0. See the LICENSE file for the complete license text.
+
+---
+
+## Repository
+
+**RentProof** -- Privacy-preserving rental solvency verification on Midnight
+
+GitHub: https://github.com/agenticfinance-dev/RentProof
