@@ -183,3 +183,74 @@ Transaction ID: 00d4f58e4271584e843d6aee135bf13da80ad79940d6b9f7d3537fb594a796d2
 - The contract is deployed and tested on Midnight Preprod with verifiable on-chain transactions.
 - The live frontend is deployed publicly and includes 1AM Wallet DApp Connector integration.
 - The slide deck and demo video are included in the submission.
+
+---
+
+## Judge Quickstart
+
+| Step | Action | What to verify |
+|---|---|---|
+| 2 | Open the GitHub repository | Compact contract, frontend, CLI and deployment code |
+| 3 | Review the Verified Midnight Preprod Deployment above | Deployed contract and verified transactions |
+| 4 | Open the 1AM Explorer evidence above | Deployment block #2,387,047 |
+| 5 | Review the Subscan evidence below | Finalized Midnight Preprod block #2,387,011 |
+| 6 | Review the Solvency Proof Result above | `ELIGIBLE` with required threshold `3` |
+
+### Core Value
+
+RentProof lets a renter prove that their private balance meets a required rent threshold without revealing the actual balance.
+
+## Privacy Model
+
+| Data | Visibility |
+|---|---|
+| Renter's actual balance | **Private** |
+| Balance witness | **Private** |
+| Required rent threshold | **Public** |
+| Verification result | **Public** |
+| On-chain transaction evidence | **Public** |
+
+RentProof uses a private witness for the renter's balance. The verification result establishes whether the private balance satisfies the required threshold without publicly revealing the actual balance.
+
+## Additional Midnight Preprod Evidence
+
+### Subscan — Block #2,387,011
+
+- Timestamp: **September 3, 2026, 11:24:24 UTC**
+- Status: **Finalized**
+- Block Hash:
+  `0xdf6ae68813e76a269d10e4ad3e00423e3056577a3476166fdbf9aecebac23414`
+- Parent Hash:
+  `0x46935dd46fa711c4db7e8873fc7f2c83b476350243d1fda1aecd8b0c7426b3f1`
+- State Root:
+  `0x70b2e7837799025a90a318a64c60bd3a05f822de901b1ad9ff98663cc39c8d01`
+- Extrinsics Root:
+  `0x1c8011bbed54a674325a83c0c4067e2152c0c198a6977b375aa2a3deaff73c75`
+- Validator:
+  `mn_addr_preprod13382wavjxcl49h2hw377gx9ca37vpjl5qudjkgy6gql7ect9lgzstlkcmm`
+- Spec Version: `1000000`
+
+## Testing
+
+Run the project test suite with:
+
+    npm test
+
+The repository also includes setup, deployment, CLI and end-to-end verification workflows used during Preprod testing.
+
+## Wave Roadmap
+
+### Wave 2 — Verifiable Privacy-Preserving Rental Proofs
+- Landlord/verifier workflow
+- Proof receipt or identifier
+- Proof expiry/freshness
+- Improved 1AM Wallet and frontend UX
+- Further privacy improvements
+
+### Wave 3 — Complete Privacy-Preserving Rental Verification
+- Renter-to-landlord verification workflow
+- Reusable privacy-preserving proofs
+- Multiple rental requirements
+- Verification history
+- Production-ready UX
+- Security and privacy review
