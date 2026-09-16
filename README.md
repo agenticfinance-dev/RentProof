@@ -132,161 +132,54 @@ The complete resolved dependency tree is recorded in package-lock.json.
 RentProof is designed to connect through the 1AM Wallet using the Midnight DApp Connector API. The frontend specifically searches for the 1AM wallet and does not fall back to another wallet.
 
 ---
+---
 
 ## Verified Midnight Preprod Deployment
 
-RentProof has been successfully compiled, deployed, and tested on the Midnight Preprod network.
+RentProof has been deployed and exercised on Midnight Preprod.
 
-**Contract Address:** 0x57e370728a820cdb13386b9a330c29ea8d546a2cdf15aaef778798f752b22c
+### Contract Address
 
-**Threshold Transaction:** 034e8af4693ea70bbe2cecf1f78321ec281599390557e29a1cb7694350ee5a795
+0x0e57e370728a820cd61596669a330c29ea8d646a2cdf15aaaf778798f752b22c
 
-**Solvency Proof Transaction:** 00d4f58e4271584e843d6aee135bf13da80ad79940d6b9f7d3537fb594a796d299
+### Transaction 1 — setThreshold
 
-**Successful Verification:**
+Transaction Hash: 0xb3cf8128c8b10bef6ce71d8c5ec1d1b81ee69f2de96e778ca92063c02ed3e845
 
-    Required threshold: 3
-    Solvency status: ELIGIBLE
+- Block: #2,387,011
+- Block Hash: 0xdf6ae68813e76a269d10e4ad3e00423e3056577a3476166fdbf9aecebac23414
+- Timestamp: Sep 3, 2026, 11:24:24 AM UTC
+- Status: SUCCESS
 
-The successful Preprod test demonstrated that RentProof can submit and verify a solvency proof and return an eligibility result without revealing the underlying financial balance.
+### Contract Deployment
 
----
+Deployment Transaction: 0xff47ab836fec82540ab9bfcc546c75805d6c56128019e884ec623e0051b9a8d0
 
-## Privacy Model
+- Block: #2,387,047
+- Block Hash: 0x19b5b1ffcf6d905bdbc1d268893cef7e5540f69ff8c7bc10284d70f944ad5d9a
+- Parent Hash: 0xc7d32736dfdc8c879a6ab388db60b630711e86d0324dfe9670a3f6b86083d5c7
+- Timestamp: Sep 3, 2026, 11:28:00 AM UTC
+- Status: Finalized
 
-RentProof is built around a simple privacy principle: the eligibility result can be verified without exposing the underlying financial value.
+### Solvency Proof Result
 
-Instead of sharing an exact financial balance, RentProof provides a result such as ELIGIBLE. This minimizes unnecessary disclosure of sensitive financial information.
+Transaction ID: 00d4f58e4271584e843d6aee135bf13da80ad79940d6b9f7d3537fb594a796d299
 
----
+- Status: ELIGIBLE
+- Required threshold: 3
 
-## User Flow
+## Project Resources
 
-    1. Connect 1AM Wallet
-    2. Enter rental requirement
-    3. Generate solvency proof
-    4. Submit proof to Midnight
-    5. Verify proof
-    6. Receive eligibility result
+- GitHub: https://github.com/agenticfinance-dev/RentProof
+- Slide Deck: https://docs.google.com/presentation/d/16UKrkWeHSsEpjdDlVQnhceCwdnFIDTozRm78m4sLUKI/edit?usp=drivesdk
+- 1AM Explorer Evidence: https://explorer.1am.xyz/block/2387047
 
-The application intentionally focuses on this single use case rather than adding unnecessary features.
+## Buildathon Compliance Notes
 
----
-
-## Frontend
-
-RentProof includes a lightweight React frontend designed around the core verification workflow.
-
-**Frontend Features**
-
-- 1AM Wallet connection
-- Midnight Preprod network connection
-- Rental affordability verification interface
-- Privacy-focused eligibility result
-- Simple user experience
-- No unnecessary account or financial-data dashboard
-
-Built with React, TypeScript, Vite, and the Midnight DApp Connector API.
-
----
-
-## Project Structure
-
-    RentProof/
-    |-- contracts/
-    |   `-- rentproof.compact
-    |-- src/
-    |   |-- deploy.ts
-    |   |-- network.ts
-    |   `-- ...
-    |-- frontend/
-    |   `-- src/
-    |       |-- App.tsx
-    |       |-- App.css
-    |       |-- index.css
-    |       `-- main.tsx
-    |-- tests/
-    |-- docker-compose.yml
-    |-- package.json
-    |-- package-lock.json
-    |-- README.md
-    `-- LICENSE
-
----
-
-## Getting Started
-
-### Requirements
-
-- Node.js
-- npm
-- Docker
-- 1AM Wallet
-- Midnight Preprod access
-
-### Clone the Repository
-
-    git clone https://github.com/agenticfinance-dev/RentProof.git
-    cd RentProof
-
-### Install Dependencies
-
-    npm install
-
-### Start the Proof Server
-
-    docker compose up -d proof-server
-
-### Build the Frontend
-
-    cd frontend
-    npm install
-    npm run build
-
-### Start the Frontend
-
-    npm run dev
-
-Open the application in a Midnight-compatible browser environment with the 1AM Wallet available.
-
----
-
-## Security
-
-RentProof is designed to minimize exposure of sensitive financial information.
-
-Wallet recovery phrases, private keys, generated wallet state, deployment state, and other sensitive credentials must never be committed to the repository. Sensitive local development and wallet-state files are excluded from version control.
-
-The repository does not require users to publish their private financial balance as part of the eligibility result.
-
----
-
-## Buildathon Focus
-
-RentProof focuses on one clear privacy use case: a tenant can prove they meet a rental affordability requirement without revealing their bank balance.
-
-The project prioritizes a working privacy-preserving implementation over unnecessary application complexity.
-
----
-
-## Why Midnight?
-
-RentProof is designed around a problem where privacy is central. Financial information is highly sensitive, while rental verification often only requires a yes-or-no answer.
-
-Midnight's privacy-preserving smart contract infrastructure provides a suitable foundation for proving that a condition has been satisfied without unnecessarily exposing the underlying information.
-
----
-
-## License
-
-Copyright (c) 2026 Agentic Finance Studio
-
-Licensed under the Apache License, Version 2.0. See the LICENSE file for the complete license text.
-
----
-
-## Repository
-
-**RentProof** -- Privacy-preserving rental solvency verification on Midnight
-
-GitHub: https://github.com/agenticfinance-dev/RentProof
+- The Midnight-related code (Compact contract, CLI, deployment scripts) was newly developed for this project.
+- The Compact contract compiles successfully with Compact 0.31.1.
+- The repository is licensed under Apache License 2.0.
+- The public repository carries the required `midnightntwrk` topic.
+- The contract is deployed and tested on Midnight Preprod with verifiable on-chain transactions.
+- The live frontend is deployed publicly and includes 1AM Wallet DApp Connector integration.
+- The slide deck and demo video are included in the submission.
